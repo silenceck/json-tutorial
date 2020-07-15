@@ -125,6 +125,14 @@ static int lept_parse_string(lept_context* c, lept_value* v) {
             case '\0':
                 c->top = head;
                 return LEPT_PARSE_MISS_QUOTATION_MARK;
+            case '\\':
+                if(*p == '\"' || *p == '\\' || *p == '\b' || *p == '\f' || *p == '\n' || *p == '\r' || *p == '\t')
+                    continue ;
+                else {
+                    PUT_CH(c, '\\');
+                    p++;
+                }
+                    
             default:
                 PUT_CH(c, ch);
         }
@@ -146,6 +154,7 @@ int lept_parse(lept_value* v, const char* json) {
             ret = LEPT_PARSE_ROOT_NOT_SINGULAR;
     }
     assert(c.top == 0);
+    // lept_free(v);
     free(c.stack);
     return ret;
 }
@@ -166,14 +175,38 @@ void lept_free(lept_value* v) {
     } 
     v->type = LEPT_NULL;
 }
+
+int lept_get_boolean(const lept_value* v) {
+    assert(v != NULL && (v->type == LEPT_TRUE || v->type == LEPT_FALSE));
+    int b = v->type == LEPT_TRUE? 1: 0;
+    return b;
+}
+
+void lept_set_boolen(lept_value* v, int b) {
+    assert(v != NULL && (b == 1 || b == 0));
+    if(b == 1) 
+        v->type = LEPT_TRUE;
+    if(b == 0)
+        v->type = LEPT_FALSE; 
+}
 void lept_set_string(lept_value* v, const char* s, size_t len){
-    assert(v != NULL && s != NULL && len != 0);
+    assert(v != NULL && (s != NULL || len != 0));
     lept_free(v);
     v->u.s.s = (char*)malloc(len+1);
     memcpy(v->u.s.s, s, len);
     v->u.s.s[len] = '\0';
     v->u.s.len = len;
     v->type = LEPT_STRING;
+}
+
+char* lept_get_string(const lept_value* v) {
+    assert(v != NULL && v->type == LEPT_STRING);
+    return v->u.s.s;
+}
+
+size_t lept_get_string_length(const lept_value* v) {
+    assert(v != NULL && v->type == LEPT_STRING);
+    return v->u.s.len;
 }
 
 
