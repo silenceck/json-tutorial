@@ -20,7 +20,10 @@ static int test_pass = 0;
 #define EXPECT_EQ_INT(expect, actual) EXPECT_EQ_BASE((expect) == (actual), expect, actual, "%d")
 #define EXPECT_EQ_DOUBLE(expect, actual) EXPECT_EQ_BASE((expect) == (actual), expect, actual, "%.17g")
 #define EXPECT_EQ_STRING(expect, actual, alength) \
-     EXPECT_EQ_BASE((sizeof(actual) -1 == alength) && memcmp(expect, actual, alength) == 0, expect, actual, "%s")
+     EXPECT_EQ_BASE(sizeof(expect) - 1 == alength && memcmp(expect, actual, alength) == 0, expect, actual, "%s")
+
+#define EXPECT_TRUE(expect) EXPECT_EQ_BASE((expect) == 1, "true", "true", "%s")
+#define EXPECT_FALSE(expect) EXPECT_EQ_BASE((expect) == 0, "false", "false", "%s")
 
 #define TEST_ERROR(error, json) \
     do {\
@@ -68,6 +71,7 @@ static void test_parse_false() {
     EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "false"));
     EXPECT_EQ_INT(LEPT_FALSE, lept_get_type(&v));
 }
+
 static void test_parse_expect_value() {
     lept_value v;
     v.type = LEPT_FALSE;
@@ -77,6 +81,7 @@ static void test_parse_expect_value() {
     EXPECT_EQ_INT(LEPT_PARSE_EXPECT_VALUE, lept_parse(&v, " "));
     EXPECT_EQ_INT(LEPT_NULL, lept_get_type(&v));
 }
+
 static void test_parse_invalid_value() {
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "?");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "adf");
@@ -90,10 +95,8 @@ static void test_parse_invalid_value() {
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "NAN");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "nan");
     TEST_ERROR(LEPT_PARSE_INVALID_VALUE, "0m");
-
-    
-    
 }
+
 static void test_parse_root_not_singular() {
     lept_value v;
     v.type = LEPT_FALSE;
@@ -101,10 +104,12 @@ static void test_parse_root_not_singular() {
     EXPECT_EQ_INT(LEPT_NULL, lept_get_type(&v));
     // TEST_ERROR(LEPT_PARSE_ROOT_NOT_SINGULAR, "0123"); 
 }
+
 static void test_parse_number_too_big() {
     TEST_ERROR(LEPT_PARSE_NUMBER_TOO_BIG, "-1e309");
     TEST_ERROR(LEPT_PARSE_NUMBER_TOO_BIG, "1e309");
 }
+
 static void test_parse_number() {
     TEST_NUMBER(0.0, "0");
     TEST_NUMBER(0.0, "-0");
@@ -142,6 +147,16 @@ static void test_parse_number() {
     
 
 }
+
+static void test_access_number() {
+    lept_value v;
+    lept_init(&v);
+    lept_set_string(&v, "a", 1);
+    lept_set_number(&v, 1.1);
+    EXPECT_EQ_DOUBLE(1.1, lept_get_number(&v));
+    lept_free(&v);
+}
+
 static void test_access_string() {
     lept_value v;
     lept_init(&v);
@@ -154,8 +169,26 @@ static void test_access_string() {
 }
 
 static void test_parse_string() {
-    TEST_STRING("\"a\"", "\"a\"");
+    TEST_STRING("a", "\"a\"");
+    TEST_STRING("a\t", "\"a\t\"");
 }
+
+static void test_parse_invalid_string() {
+
+}
+
+static void test_access_boolean() {
+    lept_value v;
+    lept_init(&v);
+    lept_set_string(&v, "hello", 5);
+    lept_set_boolen(&v, 1);
+    EXPECT_TRUE(lept_get_boolean(&v));
+    lept_set_boolen(&v, 0);
+    EXPECT_FALSE(lept_get_boolean(&v));
+    lept_free(&v);
+}
+
+
 static void test_parse() {
     test_parse_null();
     test_parse_true();
@@ -164,6 +197,9 @@ static void test_parse() {
     test_parse_invalid_value();
     test_parse_root_not_singular();
     test_parse_number();
+    test_parse_number_too_big();
+    test_access_number();
+    test_access_boolean();
     test_access_string();
     test_parse_string();
 }
